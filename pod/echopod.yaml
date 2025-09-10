@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-server
+  namespace: ebpf-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo-server
+  template:
+    metadata:
+      labels:
+        app: echo-server
+    spec:
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      nodeSelector:
+        kubernetes.io/hostname: "sandbox-master1"
+      containers:
+      - name: echo-server
+        image: hashicorp/http-echo:latest
+        args:
+        - "-text=Hello world"
+        ports:
+        - containerPort: 5678

@@ -73,7 +73,7 @@ func l4Name(p uint8) string {
 
 func main() {
 	// ---- flags ----
-	iface := flag.String("iface", "eno4", "Network interface to attach (e.g., eno4, eno2, docker0)")
+	iface := flag.String("iface", "eno2", "Network interface to attach (e.g., eno4, eno2, docker0)")
 	obj   := flag.String("obj",   "../xflow_kern.o", "Path to BPF object file")
 	flag.Parse()
 
