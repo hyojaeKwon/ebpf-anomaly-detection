@@ -13,19 +13,32 @@ spec:
       labels:
         app: echo-server
     spec:
-      tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-        effect: "NoSchedule"
-      - key: "node-role.kubernetes.io/control-plane"
-        operator: "Exists"
-        effect: "NoSchedule"
-      nodeSelector:
-        kubernetes.io/hostname: "sandbox-master1"
+      initContainers:
+      - name: attach
+        imagePullPolicy: Always
+        image: khj010909/ebpf:2.0.5
+        env:
+          - name: POD_UID
+            valueFrom: { fieldRef: { fieldPath: metadata.uid}}
+        securityContext:
+          privileged: true
+          runAsUser: 0
+          capabilities:
+            add: ["NET_ADMIN","BPF","SYS_ADMIN"]
+        # command: ["/bin/sh","-c"]
+        # args: ["/app/attach.sh"]
+        volumeMounts:
+          - name:  bpf
+            mountPath: /sys/fs/bpf
+            readOnly: false
+      volumes:
+        - name:  bpf
+          hostPath:
+            path: /sys/fs/bpf
+            type: Directory
       containers:
-      - name: echo-server
-        image: hashicorp/http-echo:latest
-        args:
-        - "-text=Hello world"
+      - name: server
+        image: alpine:3.20
+        command: ["/bin/sh", "-c", "sleep infinity"]
         ports:
         - containerPort: 5678
