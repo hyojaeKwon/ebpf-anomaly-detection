@@ -16,17 +16,15 @@ spec:
       initContainers:
       - name: attach
         imagePullPolicy: Always
-        image: khj010909/ebpf:2.0.5
+        image: khj010909/ebpf:3.0.1
         env:
           - name: POD_UID
             valueFrom: { fieldRef: { fieldPath: metadata.uid}}
         securityContext:
           privileged: true
           runAsUser: 0
-          capabilities:
-            add: ["NET_ADMIN","BPF","SYS_ADMIN"]
-        # command: ["/bin/sh","-c"]
-        # args: ["/app/attach.sh"]
+          # capabilities:
+          #   add: ["NET_ADMIN","BPF","SYS_ADMIN"]
         volumeMounts:
           - name:  bpf
             mountPath: /sys/fs/bpf
@@ -38,11 +36,18 @@ spec:
             type: Directory
       containers:
       - name: reader
-        image: khj010909/ebpf-reader:1.0.0
+        image: khj010909/ebpf-reader:3.0.1
+        env:
+          - name: POD_UID
+            valueFrom: { fieldRef: { fieldPath: metadata.uid}}
+        volumeMounts:
+          - name:  bpf
+            mountPath: /sys/fs/bpf
+            readOnly: false
         securityContext:
           runAsUser: 0
-          capabilities:
-            add: ["NET_ADMIN","BPF","SYS_ADMIN"]
+          # capabilities:
+          #   add: ["NET_ADMIN","BPF","SYS_ADMIN"]
       - name: server
         image: alpine:3.20
         command: ["/bin/sh", "-c", "sleep infinity"]

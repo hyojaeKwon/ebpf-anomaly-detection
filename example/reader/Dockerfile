@@ -11,6 +11,5 @@ FROM alpine:3.13
 WORKDIR /app
 RUN adduser -D -u 10001 adduser
 COPY --from=go-build /out/app /app/app
-COPY ingress_filter.o /app/bpf/ingress_filter.o
 USER appuser
 ENTRYPOINT ["/app/app"]

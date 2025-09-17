@@ -12,6 +12,16 @@ import (
 	"github.com/cilium/ebpf/link"
 )
 
+type netEvent struct {
+	TsNs   uint64
+	PktLen uint32
+	Saddr  uint32 // be32
+	Daddr  uint32 // be32
+	Sport  uint16 // be16
+	Dport  uint16 // be16
+	L4     uint8  // 6=TCP, 17=UDP
+}
+
 func main() {
 
 	podUId := os.Getenv("POD_UID")
@@ -24,6 +34,7 @@ func main() {
 	log.Printf("%s", extendedPinRoot)
 	pinProgIngress := filepath.Join(extendedPinRoot, "prog_ingress")
 	pinLinkIngress := filepath.Join(extendedPinRoot, "link_ingress")
+	pinMap := filepath.Join(extendedPinRoot, "maps")
 	// pinProgEgress  = "/sys/fs/bpf/xflow/prog_egress"
 	// pinLinkEgress  = "/sys/fs/bpf/xflow/link_egress"
 
@@ -47,6 +58,8 @@ func main() {
 
 	// 4. 프로그램 찾기
 	ingress := coll.Programs["ingress_custom_ebpf"]
+	events := coll.Maps["events"]
+
 	if ingress == nil {
 		log.Fatalf("missing programs")
 	}
@@ -61,7 +74,10 @@ func main() {
 	// 7. 링크 핀
 	if err := ingressLink.Pin(pinLinkIngress); err != nil {
 		log.Fatalf("pin ingress link: %v", err)
+	}
 
+	if err := events.Pin(pinMap); err != nil {
+		log.Fatalf("pin events failed: %v", err)
 	}
 
 	log.Printf("OK: TCX ingress attached on %s and pinned at %s", iface, pinLinkIngress)

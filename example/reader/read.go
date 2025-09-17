@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/ringbuf"
@@ -25,22 +26,28 @@ type netEvent struct {
 
 func main() {
 
-	spec, err := ebpf.LoadCollectionSpec("/app/bpf/ingress_filter.o")
-	if err != nil {
-		log.Fatalf("ebpf load error : %v", err)
-	}
-	// defer coll.Close()
-	coll, err := ebpf.NewCollection(spec)
-	if err != nil {
-		log.Fatalf("ebpf new collection error : %v", err)
-	}
-	rbMap, ok := coll.Maps["events"]
-	if !ok {
-		log.Fatalf("map 'events' not found in object")
-	}
-	defer coll.Close()
+	podUId := os.Getenv("POD_UID")
+	pinRoot := "/sys/fs/bpf/xflow"
+	extendedPinRoot := filepath.Join(pinRoot, podUId)
+	pinMap := filepath.Join(extendedPinRoot, "maps")
 
-	rd, err := ringbuf.NewReader(rbMap)
+	// spec, err := ebpf.LoadCollectionSpec("/app/bpf/ingress_filter.o")
+	// if err != nil {
+	// 	log.Fatalf("ebpf load error : %v", err)
+	// }
+	// // defer coll.Close()
+	// coll, err := ebpf.NewCollection(spec)
+	// if err != nil {
+	// 	log.Fatalf("ebpf new collection error : %v", err)
+	// }
+	// rbMap, ok := coll.Maps["events"]
+	// if !ok {
+	// 	log.Fatalf("map 'events' not found in object")
+	// }
+	// defer coll.Close()
+	m, err := ebpf.LoadPinnedMap(pinMap, nil)
+
+	rd, err := ringbuf.NewReader(m)
 	if err != nil {
 		log.Fatalf("ringbuf reader error : %s", err)
 	}
