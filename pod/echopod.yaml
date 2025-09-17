@@ -37,6 +37,12 @@ spec:
             path: /sys/fs/bpf
             type: Directory
       containers:
+      - name: reader
+        image: khj010909/ebpf-reader:1.0.0
+        securityContext:
+          runAsUser: 0
+          capabilities:
+            add: ["NET_ADMIN","BPF","SYS_ADMIN"]
       - name: server
         image: alpine:3.20
         command: ["/bin/sh", "-c", "sleep infinity"]

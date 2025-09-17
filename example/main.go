@@ -59,14 +59,12 @@ func main() {
 	defer ingressLink.Close()
 
 	// 7. 링크 핀
-	ingressLink.Unpin()
 	if err := ingressLink.Pin(pinLinkIngress); err != nil {
 		log.Fatalf("pin ingress link: %v", err)
 
 	}
 
 	log.Printf("OK: TCX ingress attached on %s and pinned at %s", iface, pinLinkIngress)
-
 }
 
 func attachTCX(prog *ebpf.Program, ifname string, attach ebpf.AttachType) link.Link {
