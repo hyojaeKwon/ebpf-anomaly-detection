@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: ebpf-test
+  name: control-tower
+spec:
+  selector:
+    matchLabels: { app: control-tower }
+  template:
+    metadata:
+      labels: { app: control-tower }
+    spec:
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: host-run
+          hostPath:
+            path: /var/run/control-tower
+            type: DirectoryOrCreate
+      initContainers:
+        - name: prep-dir
+          image: busybox:1.36
+          command: ["/bin/sh","-c","chmod 0775 /host-run && chown 1000:2000 /host-run || true"]
+          volumeMounts:
+            - name: host-run
+              mountPath: /host-run
+      containers:
+        - name: tower
+          image: khj010909/ebpf-control-tower:1.0.1
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: host-run
+              mountPath: /var/run/control-tower
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh","-c","rm -f /var/run/control-tower/daemon.sock || true"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 2000

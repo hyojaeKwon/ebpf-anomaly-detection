@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -24,27 +25,23 @@ type netEvent struct {
 	L4     uint8  // 6=TCP, 17=UDP
 }
 
+const sockPath = "/var/run/control-tower/daemon.sock"
+
 func main() {
+	c, err := net.Dial("unix", sockPath)
+	if err != nil {
+		log.Fatalf("socket connection error : %v", err)
+		panic(err)
+	}
+
+	defer c.Close()
+	w := bufio.NewWriter(c)
 
 	podUId := os.Getenv("POD_UID")
 	pinRoot := "/sys/fs/bpf/xflow"
 	extendedPinRoot := filepath.Join(pinRoot, podUId)
 	pinMap := filepath.Join(extendedPinRoot, "maps")
 
-	// spec, err := ebpf.LoadCollectionSpec("/app/bpf/ingress_filter.o")
-	// if err != nil {
-	// 	log.Fatalf("ebpf load error : %v", err)
-	// }
-	// // defer coll.Close()
-	// coll, err := ebpf.NewCollection(spec)
-	// if err != nil {
-	// 	log.Fatalf("ebpf new collection error : %v", err)
-	// }
-	// rbMap, ok := coll.Maps["events"]
-	// if !ok {
-	// 	log.Fatalf("map 'events' not found in object")
-	// }
-	// defer coll.Close()
 	m, err := ebpf.LoadPinnedMap(pinMap, nil)
 
 	rd, err := ringbuf.NewReader(m)
@@ -69,12 +66,14 @@ func main() {
 			buf := bytes.NewReader(rec.RawSample)
 			binary.Read(buf, binary.LittleEndian, &ev)
 
-			fmt.Printf("ts=%d len=%d %s:%d -> %s:%d l4=%s\n",
+			msg := fmt.Sprintf("ts=%d len=%d %s:%d -> %s:%d l4=%s\n",
 				ev.TsNs, ev.PktLen,
 				ipFromBE32(ev.Saddr), ntohs(ev.Sport),
 				ipFromBE32(ev.Daddr), ntohs(ev.Dport),
 				l4Name(ev.L4),
 			)
+			w.WriteString(msg)
+			w.Flush()
 		}
 
 	}()

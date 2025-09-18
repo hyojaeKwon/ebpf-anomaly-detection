@@ -4,7 +4,7 @@ metadata:
   name: echo-server
   namespace: ebpf-test
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: echo-server
@@ -34,9 +34,14 @@ spec:
           hostPath:
             path: /sys/fs/bpf
             type: Directory
+        - name:  client-run
+          hostPath:
+            path: /var/run/control-tower
+            type: Directory    
       containers:
       - name: reader
-        image: khj010909/ebpf-reader:3.0.1
+        image: khj010909/ebpf-reader:3.0.3
+        imagePullPolicy: Always
         env:
           - name: POD_UID
             valueFrom: { fieldRef: { fieldPath: metadata.uid}}
@@ -44,10 +49,11 @@ spec:
           - name:  bpf
             mountPath: /sys/fs/bpf
             readOnly: false
+          - name: client-run
+            mountPath: /var/run/control-tower
+            readOnly: false
         securityContext:
           runAsUser: 0
-          # capabilities:
-          #   add: ["NET_ADMIN","BPF","SYS_ADMIN"]
       - name: server
         image: alpine:3.20
         command: ["/bin/sh", "-c", "sleep infinity"]
